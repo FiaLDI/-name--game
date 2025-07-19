@@ -1,9 +1,10 @@
-using Unity.VisualScripting;
+using Mirror;
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
-public class FirstPersonController : MonoBehaviour
+public class FirstPersonController : NetworkBehaviour
 {
     [Header("Movement")]
     public float moveSpeed = 5f;
@@ -17,6 +18,7 @@ public class FirstPersonController : MonoBehaviour
 
     private CharacterController controller;
     private PlayerInputActions inputActions;
+
     private Vector2 moveInput;
     private Vector2 lookInput;
 
@@ -28,6 +30,12 @@ public class FirstPersonController : MonoBehaviour
     private bool jumpRequested = false;
     private bool canMove = true;
 
+    public static event Action<Transform, FirstPersonController> OnLocalPlayerReady;
+
+    // Для синхронизации позиции и поворота
+    [SyncVar] private Vector3 syncPosition;
+    [SyncVar] private Quaternion syncRotation;
+
     public void EnableInput()
     {
         inputActions.Enable();
@@ -38,47 +46,67 @@ public class FirstPersonController : MonoBehaviour
         inputActions.Disable();
     }
 
-    void Awake()
+    public override void OnStartLocalPlayer()
     {
-        controller = GetComponent<CharacterController>();
+        base.OnStartLocalPlayer();
+        Debug.Log("OnStartLocalPlayer called");
         inputActions = new PlayerInputActions();
-
-        // Подписка на движение
-        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        inputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-
-        // Подписка на прыжок
-        inputActions.Player.Jump.performed += ctx => jumpRequested = true;
-    }
-
-    void OnEnable()
-    {
-        if (inputActions == null)
-            inputActions = new PlayerInputActions();
-
         inputActions.Enable();
+
+        if (cameraTransform != null)
+        {
+            cameraTransform.gameObject.SetActive(true);
+            Debug.Log("Camera enabled for local player");
+        }
+        else
+        {
+            Debug.LogWarning("cameraTransform is null!");
+        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        OnLocalPlayerReady?.Invoke(transform, this);
     }
 
-    void OnDisable()
+    public override void OnStopLocalPlayer()
     {
-        if (inputActions != null)
-            inputActions.Disable();
+        base.OnStopLocalPlayer();
+        inputActions.Disable();
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
+    void Awake()
+    {
+        controller = GetComponent<CharacterController>();
+        if (!isLocalPlayer)
+        {
+            if (cameraTransform != null)
+                cameraTransform.gameObject.SetActive(false);
+        }
+    }
+
     void Update()
     {
+        if (!isLocalPlayer)
+        {
+            transform.position = Vector3.Lerp(transform.position, syncPosition, Time.deltaTime * 10f);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, syncRotation, 360f * Time.deltaTime);
+            return;
+        }
+
+
         if (!canMove)
             return;
+
+        moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         lookInput = inputActions.Player.Look.ReadValue<Vector2>();
 
         HandleLook();
         HandleMovement();
+
+        CmdSendTransform(transform.position, transform.rotation);
     }
 
     void HandleLook()
@@ -87,7 +115,8 @@ public class FirstPersonController : MonoBehaviour
 
         pitch -= lookInput.y * lookSensitivity * 0.1f;
         pitch = Mathf.Clamp(pitch, -25f, 25f);
-        cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        if (cameraTransform != null)
+            cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
     void HandleMovement()
@@ -101,7 +130,7 @@ public class FirstPersonController : MonoBehaviour
             }
             else if (verticalVelocity < 0f)
             {
-                verticalVelocity = -1f; // чтобы не "прилипал"
+                verticalVelocity = -1f;
             }
         }
         else
@@ -124,11 +153,17 @@ public class FirstPersonController : MonoBehaviour
 
         controller.Move(move * Time.deltaTime);
     }
+
+    [Command]
+    void CmdSendTransform(Vector3 pos, Quaternion rot)
+    {
+        syncPosition = pos;
+        syncRotation = rot;
+    }
+
     public void FreezeMovement()
     {
-        Debug.Log("Can move start: " + canMove);
         canMove = false;
-        Debug.Log("Can move end: " + canMove);
     }
 
     public void UnfreezeMovement()

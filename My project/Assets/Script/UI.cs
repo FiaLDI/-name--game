@@ -1,116 +1,117 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using UnityEngine.InputSystem;
+using Mirror;
 
 public class UI : MonoBehaviour
 {
     public Camera mainCamera;
-    public Transform player;
     public GameObject uiPanel;
-    public float interactionDistance = 3f;
+    public float interactionDistance = 100f;
     public LayerMask interactLayer;
-    public FirstPersonController firstPersonController;
+
+    private Transform player;
+    private FirstPersonController firstPersonController;
 
     private bool isActive = false;
 
+    private void OnEnable()
+    {
+        FirstPersonController.OnLocalPlayerReady += AssignPlayer;
+    }
+
+    private void OnDisable()
+    {
+        FirstPersonController.OnLocalPlayerReady -= AssignPlayer;
+    }
+
     private void Start()
     {
-        if (player == null)
-            Debug.LogError("Player not assigned!");
-
         if (uiPanel != null)
+        {
             uiPanel.SetActive(false);
+        }
         else
+        {
             Debug.LogError("UI Panel not assigned!");
+        }
 
-        if (firstPersonController == null)
-            Debug.LogWarning("FirstPersonController reference is missing! Please assign it in the inspector.");
+        // –ò–∑–Ω–∞—á–∞–ª—å–Ω–æ –∏–≥—Ä–æ–∫–∞ –Ω–µ—Ç
+        player = null;
+        firstPersonController = null;
+    }
 
+    private void AssignPlayer(Transform playerTransform, FirstPersonController controller)
+    {
+        player = playerTransform;
+        firstPersonController = controller;
+        Debug.Log("Player assigned via event: " + player.name);
     }
 
     private void Update()
     {
-        if (uiPanel == null) return;
-        if (firstPersonController == null) return;
-
-        if (Keyboard.current == null)
+        if (player == null || firstPersonController == null)
         {
-            Debug.LogWarning("Keyboard.current is null. Make sure Input System is enabled.");
+            Debug.Log("‚è≥ Waiting for local player assignment...");
             return;
         }
 
-        if (player == null) return;
+        if (uiPanel == null)
+        {
+            Debug.LogError("UI Panel not assigned!");
+            return;
+        }
+
+        if (Keyboard.current == null)
+        {
+            Debug.LogWarning("Keyboard.current is null. Is the Input System active?");
+            return;
+        }
 
         float distance = Vector3.Distance(player.position, transform.position);
+        Debug.Log($"Player pos: {player.position} | UI pos: {transform.position}");
 
         uiPanel.SetActive(isActive);
 
         if (distance <= interactionDistance)
         {
+            Debug.Log("üü¢ Player within interaction distance");
+
             if (Keyboard.current.eKey.wasPressedThisFrame)
             {
+                Debug.Log("üîò E key pressed");
                 ToggleActive();
             }
         }
 
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current.escapeKey.wasPressedThisFrame && isActive)
         {
-            if (uiPanel != null && uiPanel.activeSelf)
-            {
-
-                if (isActive)
-                {
-                    RemoveFreeze();
-                    isActive = false;
-                }
-
-            }
+            Debug.Log("üî¥ ESC pressed ‚Äî closing UI");
+            isActive = false;
+            RemoveFreeze();
         }
     }
 
     private void ToggleActive()
-    {        
+    {
         isActive = !isActive;
 
-        switch (isActive)
-        {
-            case true:
-                AddFreeze();
-                break;
-            case false:
-                RemoveFreeze();
-                break;
-
-        }
-    }
-
-    private void RemoveFreeze() {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        if (firstPersonController == null)
-        {
-            Debug.LogWarning("firstPersonController is null!");
-        }
-
-        if (firstPersonController != null)
-        {
-            firstPersonController.UnfreezeMovement(); // ‡ÁÂ¯ÂÌËÂ ÔË Á‡Í˚ÚÓÏ UI
-        }
+        if (isActive)
+            AddFreeze();
+        else
+            RemoveFreeze();
     }
 
     private void AddFreeze()
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        firstPersonController?.FreezeMovement();
+    }
 
-        if (firstPersonController == null)
-        {
-            Debug.LogWarning("firstPersonController is null!");
-        }
-
-        if (firstPersonController != null)
-        {
-            firstPersonController.FreezeMovement(); // Á‡ÏÓÓÁÍ‡ ÔË ÓÚÍ˚ÚÓÏ UI
-        }
+    private void RemoveFreeze()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        firstPersonController?.UnfreezeMovement();
     }
 }
