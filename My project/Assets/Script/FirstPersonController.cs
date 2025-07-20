@@ -16,11 +16,15 @@ public class FirstPersonController : NetworkBehaviour
     public Transform cameraTransform;
     public float lookSensitivity = 1.5f;
 
+    //[Header("Animation")]
+    //public Animator modelAnimator; // Animator на дочернем объекте Model
+
     private CharacterController controller;
     private PlayerInputActions inputActions;
 
     private Vector2 moveInput;
     private Vector2 lookInput;
+
 
     private float pitch = 0f;
 
