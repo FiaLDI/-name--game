@@ -13,19 +13,18 @@ public class LevelLoader : MonoBehaviour
         Debug.Log("Button clicked!");
     }
 
-    // Этот метод вызовется при нажатии кнопки
-    public void OnStartLevelButtonPressed()
+    // Вызывается из кнопок, передаём имя уровня
+    public void OnStartLevelButtonPressed(string levelName)
     {
-        Debug.Log("Button pressed, trying to change scene...");
+        Debug.Log($"Button pressed, trying to change scene to {levelName}...");
         if (NetworkServer.active)
         {
-            Debug.Log("Server active, changing scene to Level1");
-            NetworkManager.singleton.ServerChangeScene("1 LEVEL");
+            Debug.Log($"Server active, changing scene to {levelName}");
+            NetworkManager.singleton.ServerChangeScene(levelName);
         }
         else
         {
             Debug.LogWarning("Not server, can't change scene!");
         }
     }
-
 }

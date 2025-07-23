@@ -10,19 +10,20 @@ public class NetworkUI : MonoBehaviour
 
     void Start()
     {
-        hostButton.onClick.AddListener(() =>
-        {
-            NetworkManager.singleton.StartHost();
-        });
+        if (hostButton != null)
+            hostButton.onClick.AddListener(() => NetworkManager.singleton.StartHost());
+        else
+            Debug.LogError("hostButton is not assigned in the inspector!");
 
-        clientButton.onClick.AddListener(() =>
-        {
-            NetworkManager.singleton.StartClient();
-        });
+        if (clientButton != null)
+            clientButton.onClick.AddListener(() => NetworkManager.singleton.StartClient());
+        else
+            Debug.LogError("clientButton is not assigned in the inspector!");
 
-        serverButton.onClick.AddListener(() =>
-        {
-            NetworkManager.singleton.StartServer();
-        });
+        if (serverButton != null)
+            serverButton.onClick.AddListener(() => NetworkManager.singleton.StartServer());
+        else
+            Debug.LogError("serverButton is not assigned in the inspector!");
     }
+
 }
