@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class FirstPersonController : NetworkBehaviour
 {
+    public static FirstPersonController Instance;
     [Header("Movement")]
     public float moveSpeed = 5f;
 
@@ -29,10 +30,12 @@ public class FirstPersonController : NetworkBehaviour
     private float pitch = 0f;
 
     private float verticalVelocity = 0f;
-    public float gravity = -9.81f;
+    public float jumpGravity = -15.54f;
+    public float fallGravity = -9.81f;
+    public GameObject pauseMenuUI;
 
-    private bool jumpRequested = false;
     private bool canMove = true;
+    private bool isPaused = false;
 
     public static event Action<Transform, FirstPersonController> OnLocalPlayerReady;
 
@@ -56,6 +59,9 @@ public class FirstPersonController : NetworkBehaviour
         Debug.Log("OnStartLocalPlayer called");
         inputActions = new PlayerInputActions();
         inputActions.Enable();
+        inputActions.Player.Jump.performed += OnJumpPerformed;
+        inputActions.Player.Pause.performed += OnPausePerformed;
+        Instance = this;
 
         if (cameraTransform != null)
         {
@@ -67,16 +73,20 @@ public class FirstPersonController : NetworkBehaviour
             Debug.LogWarning("cameraTransform is null!");
         }
 
+        // Временно закомментируй
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
         OnLocalPlayerReady?.Invoke(transform, this);
     }
 
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
-        inputActions.Disable();
+        inputActions.Player.Jump.performed -= OnJumpPerformed;
+        inputActions.Player.Pause.performed -= OnPausePerformed;
 
+        inputActions.Disable();
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -84,12 +94,19 @@ public class FirstPersonController : NetworkBehaviour
     void Awake()
     {
         controller = GetComponent<CharacterController>();
-        if (!isLocalPlayer)
+
+        if (isLocalPlayer)
+        {
+            inputActions = new PlayerInputActions();
+            inputActions.Enable();
+        }
+        else
         {
             if (cameraTransform != null)
                 cameraTransform.gameObject.SetActive(false);
         }
     }
+
 
     void Update()
     {
@@ -99,7 +116,6 @@ public class FirstPersonController : NetworkBehaviour
             transform.rotation = Quaternion.RotateTowards(transform.rotation, syncRotation, 360f * Time.deltaTime);
             return;
         }
-
 
         if (!canMove)
             return;
@@ -111,6 +127,15 @@ public class FirstPersonController : NetworkBehaviour
         HandleMovement();
 
         CmdSendTransform(transform.position, transform.rotation);
+    }
+    void OnDisable()
+    {
+        if (inputActions != null)
+        { 
+            inputActions.Player.Jump.performed -= OnJumpPerformed;
+            inputActions.Disable();
+        }    
+            
     }
 
     void HandleLook()
@@ -125,21 +150,15 @@ public class FirstPersonController : NetworkBehaviour
 
     void HandleMovement()
     {
-        if (controller.isGrounded)
+        if (controller.isGrounded && verticalVelocity < 0f)
         {
-            if (jumpRequested)
-            {
-                verticalVelocity = jumpForce;
-                jumpRequested = false;
-            }
-            else if (verticalVelocity < 0f)
-            {
-                verticalVelocity = -1f;
-            }
+            verticalVelocity = -1f; // удерживаем прижатие к земле
         }
         else
         {
-            verticalVelocity += gravity * Time.deltaTime;
+            // Более сильная гравитация при падении
+            float gravityToApply = verticalVelocity > 0 ? jumpGravity : fallGravity;
+            verticalVelocity += gravityToApply * Time.deltaTime;
         }
 
         Vector3 forward = cameraTransform.forward;
@@ -156,13 +175,52 @@ public class FirstPersonController : NetworkBehaviour
         move.y = verticalVelocity;
 
         controller.Move(move * Time.deltaTime);
+
+        if ((controller.collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0)
+        {
+            verticalVelocity = 0f;
+        }
     }
+
+    private void OnJumpPerformed(InputAction.CallbackContext context)
+    {
+        if (isLocalPlayer && controller.isGrounded)
+        {
+            CmdRequestJump();
+        }
+    }
+
+    private void OnPausePerformed(InputAction.CallbackContext context)
+    {
+        if (isPaused)
+            ResumeGame();
+        else
+            PauseGame();
+    }
+
 
     [Command]
     void CmdSendTransform(Vector3 pos, Quaternion rot)
     {
         syncPosition = pos;
         syncRotation = rot;
+    }
+
+    [Command]
+    void CmdRequestJump()
+    {
+        RpcDoJump(); // Триггерим прыжок на всех клиентах
+    }
+
+    [ClientRpc]
+    void RpcDoJump()
+    {
+        if (!canMove) return;
+
+        if (controller.isGrounded)
+        {
+            verticalVelocity = jumpForce;
+        }
     }
 
     public void FreezeMovement()
@@ -174,4 +232,24 @@ public class FirstPersonController : NetworkBehaviour
     {
         canMove = true;
     }
+
+    public void PauseGame()
+    {
+        isPaused = true;
+        pauseMenuUI.SetActive(true);
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        FreezeMovement();
+    }
+
+    public void ResumeGame()
+    {
+        isPaused = false;
+        pauseMenuUI.SetActive(false);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        UnfreezeMovement();
+    }
+
+
 }
