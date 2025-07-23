@@ -68,7 +68,7 @@ public class UI : MonoBehaviour
         }
 
         float distance = Vector3.Distance(player.position, transform.position);
-        Debug.Log($"Player pos: {player.position} | UI pos: {transform.position}");
+        //Debug.Log($"Player pos: {player.position} | UI pos: {transform.position}");
 
         uiPanel.SetActive(isActive);
 

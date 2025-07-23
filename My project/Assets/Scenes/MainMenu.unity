@@ -3365,7 +3365,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 754561112090085147, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -5
+      value: 39.16
       objectReference: {fileID: 0}
     - target: {fileID: 754561112090085147, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3395,9 +3395,37 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4249500537419672889, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4249500537419672889, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4249500537419672889, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 4249500537419672889, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 4249500537419672889, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 509
+      objectReference: {fileID: 0}
+    - target: {fileID: 4249500537419672889, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -618
+      objectReference: {fileID: 0}
     - target: {fileID: 4459327452666786532, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
       propertyPath: m_Name
       value: player 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4459327452666786532, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7392584137926601426, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
       propertyPath: sceneId

@@ -33,6 +33,7 @@ public class FirstPersonController : NetworkBehaviour
     public float jumpGravity = -15.54f;
     public float fallGravity = -9.81f;
     public GameObject pauseMenuUI;
+    public PlayerInventory inventory;
 
     private bool canMove = true;
     private bool isPaused = false;
@@ -42,6 +43,7 @@ public class FirstPersonController : NetworkBehaviour
     // Для синхронизации позиции и поворота
     [SyncVar] private Vector3 syncPosition;
     [SyncVar] private Quaternion syncRotation;
+
 
     public void EnableInput()
     {
@@ -61,6 +63,7 @@ public class FirstPersonController : NetworkBehaviour
         inputActions.Enable();
         inputActions.Player.Jump.performed += OnJumpPerformed;
         inputActions.Player.Pause.performed += OnPausePerformed;
+        inventory = GetComponent<PlayerInventory>();
         Instance = this;
 
         if (cameraTransform != null)
@@ -210,6 +213,38 @@ public class FirstPersonController : NetworkBehaviour
     void CmdRequestJump()
     {
         RpcDoJump(); // Триггерим прыжок на всех клиентах
+    }
+
+    [Command]
+    public void CmdAddItem(int itemId, int amount)
+    {
+        if (inventory != null)
+        {
+            bool success = inventory.AddItem(itemId, amount);
+            // Можно уведомить клиента о результате, через TargetRpc, если нужно
+        }
+    }
+
+    // Использовать предмет
+    [Command]
+    public void CmdUseItem(int itemId)
+    {
+        if (inventory != null)
+        {
+            bool success = inventory.RemoveItem(itemId, 1);
+            if (success)
+            {
+                // Логика использования предмета, например, восстановление здоровья
+                RpcOnUseItem(itemId);
+            }
+        }
+    }
+
+    [ClientRpc]
+    void RpcOnUseItem(int itemId)
+    {
+        // Клиентская логика: показать анимацию, звук и т.д.
+        Debug.Log($"Used item {itemId}");
     }
 
     [ClientRpc]
