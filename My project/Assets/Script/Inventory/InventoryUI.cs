@@ -1,4 +1,5 @@
 using Mirror;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -14,6 +15,9 @@ public class InventoryUI : MonoBehaviour
     private void OnEnable()
     {
         PlayerInventory.OnLocalPlayerInventoryReady += SetupInventory;
+
+        if (PlayerInventory.localPlayerInventory != null)
+            SetupInventory(PlayerInventory.localPlayerInventory);
     }
 
     private void OnDisable()
@@ -23,29 +27,47 @@ public class InventoryUI : MonoBehaviour
 
     private void SetupInventory(PlayerInventory inventory)
     {
+        if (!inventory.isLocalPlayer) return;
+
+        if (playerInventory != null)
+            playerInventory.OnInventoryUIChanged -= UpdateUI;
+
         playerInventory = inventory;
         playerInventory.OnInventoryUIChanged += UpdateUI;
+
         UpdateUI();
     }
 
     public void UpdateUI()
     {
+        if (playerInventory == null || contentPanel == null || slotPrefab == null)
+        {
+            Debug.LogError("UI Update skipped: missing references!");
+            return;
+        }
+
         foreach (Transform child in contentPanel)
             Destroy(child.gameObject);
 
-        foreach (var stack in playerInventory.GetItems())
+        var items = playerInventory.GetItems();
+        Debug.Log($"Updating UI with {items.Count} items");
+
+        for (int i = 0; i < items.Count; i++)
         {
-            Item item = null;
+            var slot = Instantiate(slotPrefab, contentPanel);
+            var slotUI = slot.GetComponent<InventorySlotUI>();
+            var stack = items[i];
+
             if (stack.itemId != 0)
-                item = ItemDatabase.Instance.GetItemById(stack.itemId);
-
-            var go = Instantiate(slotPrefab, contentPanel);
-            var ui = go.GetComponent<InventorySlotUI>();
-
-            if (item != null)
-                ui.Setup(item, stack.quantity);
-            else
-                ui.SetupEmpty();
+            {
+                var item = ItemDatabase.Instance.GetItemById(stack.itemId);
+                if (item != null)
+                {
+                    slotUI.Setup(item, stack.quantity);
+                    continue;
+                }
+            }
+            slotUI.SetupEmpty();
         }
     }
 

@@ -1,4 +1,4 @@
-using Mirror;
+﻿using Mirror;
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,7 +18,7 @@ public class FirstPersonController : NetworkBehaviour
     public float lookSensitivity = 1.5f;
 
     //[Header("Animation")]
-    //public Animator modelAnimator; // Animator �� �������� ������� Model
+    //public Animator modelAnimator; // Animator на дочернем объекте Model
 
     private CharacterController controller;
     private PlayerInputActions inputActions;
@@ -39,10 +39,13 @@ public class FirstPersonController : NetworkBehaviour
     private bool isPaused = false;
 
     public static event Action<Transform, FirstPersonController> OnLocalPlayerReady;
+    public PlayerInputActions InputActions => inputActions;
 
-    // ��� ������������� ������� � ��������
+
+    // Для синхронизации позиции и поворота
     [SyncVar] private Vector3 syncPosition;
     [SyncVar] private Quaternion syncRotation;
+    [SyncVar] private float syncPitch;
 
 
     public void EnableInput()
@@ -58,13 +61,23 @@ public class FirstPersonController : NetworkBehaviour
     public override void OnStartLocalPlayer()
     {
         base.OnStartLocalPlayer();
-        Debug.Log("OnStartLocalPlayer called");
+
         inputActions = new PlayerInputActions();
         inputActions.Enable();
+
         inputActions.Player.Jump.performed += OnJumpPerformed;
         inputActions.Player.Pause.performed += OnPausePerformed;
-        inventory = GetComponent<PlayerInventory>();
         Instance = this;
+
+        if (inventory == null)
+        {
+            inventory = GetComponent<PlayerInventory>();
+            if (inventory == null)
+            {
+                Debug.LogError("PlayerInventory component not found!");
+                return;
+            }
+        }
 
         if (cameraTransform != null)
         {
@@ -76,9 +89,18 @@ public class FirstPersonController : NetworkBehaviour
             Debug.LogWarning("cameraTransform is null!");
         }
 
-        // �������� �������������
+        // Временно закомментируй
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        var objectives = UnityEngine.Object.FindObjectsByType<ObjectiveRuntime>(FindObjectsSortMode.None);
+        Debug.Log($"Found {objectives.Length} ObjectiveRuntime instances.");
+        foreach (var obj in objectives)
+        {
+            obj.Initialize(transform, inputActions);
+            Debug.Log($"Initialized ObjectiveRuntime on {obj.gameObject.name}");
+        }
+
 
         OnLocalPlayerReady?.Invoke(transform, this);
     }
@@ -86,10 +108,18 @@ public class FirstPersonController : NetworkBehaviour
     public override void OnStopLocalPlayer()
     {
         base.OnStopLocalPlayer();
-        inputActions.Player.Jump.performed -= OnJumpPerformed;
-        inputActions.Player.Pause.performed -= OnPausePerformed;
 
-        inputActions.Disable();
+        if (inputActions != null)
+        {
+            inputActions.Player.Jump.performed -= OnJumpPerformed;
+            inputActions.Player.Pause.performed -= OnPausePerformed;
+            inputActions.Disable();
+        }
+
+        if (cameraTransform != null && !isServer)
+        {
+            cameraTransform.gameObject.SetActive(false);
+        }
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -98,30 +128,24 @@ public class FirstPersonController : NetworkBehaviour
     {
         controller = GetComponent<CharacterController>();
 
-        if (isLocalPlayer)
+        if (cameraTransform != null)
         {
-            inputActions = new PlayerInputActions();
-            inputActions.Enable();
+            cameraTransform.gameObject.SetActive(false);
         }
-        else
-        {
-            if (cameraTransform != null)
-                cameraTransform.gameObject.SetActive(false);
-        }
+
     }
-
-
-    void Update()
+        private void Update()
     {
+        // Если это НЕ локальный игрок, применяем синхронизированную позицию
         if (!isLocalPlayer)
         {
             transform.position = Vector3.Lerp(transform.position, syncPosition, Time.deltaTime * 10f);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, syncRotation, 360f * Time.deltaTime);
+            transform.rotation = Quaternion.Lerp(transform.rotation, syncRotation, Time.deltaTime * 10f);
             return;
         }
 
-        if (!canMove)
-            return;
+        // Дальше только локальный игрок (и хост тоже!)
+        if (!canMove) return;
 
         moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         lookInput = inputActions.Player.Look.ReadValue<Vector2>();
@@ -129,7 +153,17 @@ public class FirstPersonController : NetworkBehaviour
         HandleLook();
         HandleMovement();
 
-        CmdSendTransform(transform.position, transform.rotation);
+        // Отправляем позицию на сервер (если мы клиент)
+        if (!isServer) // Хост не должен отправлять сам себе
+        {
+            CmdSendTransform(transform.position, transform.rotation);
+        }
+        else // Если это хост, обновляем синхронные переменные напрямую
+        {
+            syncPosition = transform.position;
+            syncRotation = transform.rotation;
+            RpcUpdateTransform(transform.position, transform.rotation); // Рассылаем клиентам
+        }
     }
     void OnDisable()
     {
@@ -141,25 +175,40 @@ public class FirstPersonController : NetworkBehaviour
             
     }
 
+
     void HandleLook()
     {
+        if (!isLocalPlayer) return; // Только локальный игрок управляет камерой
+
         transform.Rotate(Vector3.up * lookInput.x * lookSensitivity);
 
         pitch -= lookInput.y * lookSensitivity * 0.1f;
         pitch = Mathf.Clamp(pitch, -25f, 25f);
+
         if (cameraTransform != null)
             cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+
+        // Отправляем угол на сервер (если мы клиент)
+        if (!isServer)
+        {
+            CmdSendPitch(pitch);
+        }
+        else // Если хост, обновляем сразу
+        {
+            syncPitch = pitch;
+            RpcUpdatePitch(pitch);
+        }
     }
 
     void HandleMovement()
     {
         if (controller.isGrounded && verticalVelocity < 0f)
         {
-            verticalVelocity = -1f; // ���������� �������� � �����
+            verticalVelocity = -1f; // удерживаем прижатие к земле
         }
         else
         {
-            // ����� ������� ���������� ��� �������
+            // Более сильная гравитация при падении
             float gravityToApply = verticalVelocity > 0 ? jumpGravity : fallGravity;
             verticalVelocity += gravityToApply * Time.deltaTime;
         }
@@ -201,18 +250,26 @@ public class FirstPersonController : NetworkBehaviour
             PauseGame();
     }
 
+    [Command]
+    void CmdSendPitch(float newPitch)
+    {
+        syncPitch = newPitch; // Сервер обновляет угол
+        RpcUpdatePitch(newPitch); // Рассылаем всем клиентам
+    }
+
 
     [Command]
     void CmdSendTransform(Vector3 pos, Quaternion rot)
     {
         syncPosition = pos;
         syncRotation = rot;
+        RpcUpdateTransform(pos, rot);
     }
 
     [Command]
     void CmdRequestJump()
     {
-        RpcDoJump(); // ��������� ������ �� ���� ��������
+        RpcDoJump(); // Триггерим прыжок на всех клиентах
     }
 
     [Command]
@@ -220,12 +277,12 @@ public class FirstPersonController : NetworkBehaviour
     {
         if (inventory != null)
         {
-            bool success = inventory.AddItem(itemId, amount);
-            // ����� ��������� ������� � ����������, ����� TargetRpc, ���� �����
+            //bool success = inventory.AddItem(itemId, amount);
+            // Можно уведомить клиента о результате, через TargetRpc, если нужно
         }
     }
 
-    // ������������ �������
+    // Использовать предмет
     [Command]
     public void CmdUseItem(int itemId)
     {
@@ -234,7 +291,7 @@ public class FirstPersonController : NetworkBehaviour
             bool success = inventory.RemoveItem(itemId, 1);
             if (success)
             {
-                // ������ ������������� ��������, ��������, �������������� ��������
+                // Логика использования предмета, например, восстановление здоровья
                 RpcOnUseItem(itemId);
             }
         }
@@ -243,8 +300,27 @@ public class FirstPersonController : NetworkBehaviour
     [ClientRpc]
     void RpcOnUseItem(int itemId)
     {
-        // ���������� ������: �������� ��������, ���� � �.�.
+        // Клиентская логика: показать анимацию, звук и т.д.
         Debug.Log($"Used item {itemId}");
+    }
+
+    [ClientRpc]
+    void RpcUpdateTransform(Vector3 pos, Quaternion rot)
+    {
+        if (!isLocalPlayer) // Только нелокальные игроки должны получать обновления
+        {
+            syncPosition = pos;
+            syncRotation = rot;
+        }
+    }
+
+    [ClientRpc]
+    void RpcUpdatePitch(float newPitch)
+    {
+        if (!isLocalPlayer && cameraTransform != null) // ✅ Обновляем только для других игроков
+        {
+            cameraTransform.localRotation = Quaternion.Euler(newPitch, 0f, 0f);
+        }
     }
 
     [ClientRpc]

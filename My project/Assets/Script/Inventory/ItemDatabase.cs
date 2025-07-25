@@ -1,4 +1,3 @@
-// ItemDatabase.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +13,8 @@ public class ItemDatabase : ScriptableObject
     private Dictionary<int, Item> itemLookup;
 
     public IEnumerable<Item> Items => items;
-    public static ItemDatabase Instance
-    {
-        get; private set;
-    }
+
+    public static ItemDatabase Instance { get; private set; }
 
     private void OnEnable()
     {
@@ -25,9 +22,31 @@ public class ItemDatabase : ScriptableObject
         Init();
     }
 
+    /// <summary>
+    /// Безопасная инициализация из Resources до загрузки сцены.
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void LoadIfMissing()
+    {
+        if (Instance == null)
+        {
+            Instance = Resources.Load<ItemDatabase>("ItemDatabase");
+            if (Instance != null)
+            {
+                Instance.Init();
+                Debug.Log("[ItemDatabase] Loaded from Resources.");
+            }
+            else
+            {
+                Debug.LogError("[ItemDatabase] NOT FOUND in Resources folder!");
+            }
+        }
+    }
+
     public void Init()
     {
         if (itemLookup != null) return;
+
         itemLookup = items
             .Where(i => i != null)
             .ToDictionary(i => i.id, i => i);
@@ -56,6 +75,7 @@ public class ItemDatabase : ScriptableObject
             used.Add(item.id);
             EditorUtility.SetDirty(item);
         }
+
         EditorUtility.SetDirty(this);
         Debug.Log("ItemDatabase: IDs auto-assigned.");
     }
@@ -79,8 +99,6 @@ public class ItemDatabase : ScriptableObject
         if (items.Contains(item))
         {
             items.Remove(item);
-
-            // Удаляем вложенный ассет из базы
             DestroyImmediate(item, true);
 
             EditorUtility.SetDirty(this);
@@ -96,9 +114,18 @@ public class ItemDatabase : ScriptableObject
             {
                 var inst = PrefabUtility.InstantiatePrefab(item.prefab) as GameObject;
                 inst.name = $"Item_{item.id}_{item.itemName}";
+                inst.transform.position = Vector3.zero;
+
+                var worldItem = inst.GetComponent<WorldItem>();
+                if (worldItem != null)
+                {
+                    worldItem.itemId = item.id;
+                    worldItem.quantity = 1;
+                }
+
+                Selection.activeGameObject = inst;
             }
         }
     }
-
 #endif
 }

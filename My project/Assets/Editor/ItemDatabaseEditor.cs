@@ -57,8 +57,21 @@ public class ItemDatabaseEditor : Editor
                 {
                     var inst = PrefabUtility.InstantiatePrefab(item.prefab) as GameObject;
                     inst.name = $"Item_{item.id}_{item.itemName}";
+
+                    var worldItem = inst.GetComponent<WorldItem>();
+                    if (worldItem != null)
+                    {
+                        // Прямо в редакторе (в Play Mode не обязательно), задаём значения
+                        worldItem.itemId = item.id;
+                        worldItem.quantity = 1;
+                    }
+
+                    // Переместим его в центр сцены
+                    inst.transform.position = Vector3.zero;
+                    Selection.activeGameObject = inst;
                 }
             }
+
             if (GUILayout.Button("🗑 Remove", GUILayout.MaxWidth(60)))
             {
                 if (EditorUtility.DisplayDialog("Confirm remove",

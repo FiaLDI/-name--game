@@ -32,8 +32,25 @@ MonoBehaviour:
   id: 4
   itemName: cataa
   icon: {fileID: 21300000, guid: 4b66f21097323d44ab40669b2fb9c53d, type: 3}
-  prefab: {fileID: 919132149155446097, guid: 3a0405b0a2e2bbe4e82bdb5bc41b114c, type: 3}
+  prefab: {fileID: 9178733262252466084, guid: d975d7ea9fc353a41a5391071d243f21, type: 3}
   isStackable: 1
+--- !u!114 &-3838457083221271543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0863ebb1b1c61d4cbe7578d14c8be25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: 1
+  itemName: 
+  icon: {fileID: 0}
+  prefab: {fileID: 0}
+  isStackable: 0
 --- !u!114 &-3552152570562785745
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48,8 +65,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: 3
   itemName: Katana
-  icon: {fileID: 0}
-  prefab: {fileID: 919132149155446097, guid: 3a0405b0a2e2bbe4e82bdb5bc41b114c, type: 3}
+  icon: {fileID: 21300000, guid: 4b66f21097323d44ab40669b2fb9c53d, type: 3}
+  prefab: {fileID: 919132149155446097, guid: fa4da956be3fad642ba815bb0dfcb7c4, type: 3}
   isStackable: 0
 --- !u!114 &11400000
 MonoBehaviour:
@@ -64,4 +81,4 @@ MonoBehaviour:
   m_Name: ItemDatabase
   m_EditorClassIdentifier: 
   items:
-  - {fileID: 0}
+  - {fileID: -3552152570562785745}

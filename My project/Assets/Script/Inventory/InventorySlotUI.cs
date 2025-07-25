@@ -10,7 +10,7 @@ public class InventorySlotUI : MonoBehaviour
 
     public void Setup(Item item, int quantity)
     {
-        if (icon != null)
+        if (icon != null || item.id == 0)
             icon.sprite = item.icon;
 
         if (quantityText != null)
