@@ -51,41 +51,34 @@ public class UI : MonoBehaviour
     {
         if (player == null || firstPersonController == null)
         {
-            Debug.Log("⏳ Waiting for local player assignment...");
             return;
         }
 
         if (uiPanel == null)
         {
-            Debug.LogError("UI Panel not assigned!");
             return;
         }
 
         if (Keyboard.current == null)
         {
-            Debug.LogWarning("Keyboard.current is null. Is the Input System active?");
             return;
         }
 
         float distance = Vector3.Distance(player.position, transform.position);
-        Debug.Log($"Player pos: {player.position} | UI pos: {transform.position}");
+        //Debug.Log($"Player pos: {player.position} | UI pos: {transform.position}");
 
         uiPanel.SetActive(isActive);
 
         if (distance <= interactionDistance)
         {
-            Debug.Log("🟢 Player within interaction distance");
-
             if (Keyboard.current.eKey.wasPressedThisFrame)
             {
-                Debug.Log("🔘 E key pressed");
                 ToggleActive();
             }
         }
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame && isActive)
         {
-            Debug.Log("🔴 ESC pressed — closing UI");
             isActive = false;
             RemoveFreeze();
         }

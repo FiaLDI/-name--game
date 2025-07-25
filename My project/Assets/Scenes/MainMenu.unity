@@ -2989,7 +2989,8 @@ MonoBehaviour:
   playerPrefab: {fileID: 4459327452666786532, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
   autoCreatePlayer: 1
   playerSpawnMethod: 0
-  spawnPrefabs: []
+  spawnPrefabs:
+  - {fileID: 2908166915850346301, guid: 71b9485918acea642a0f72cc39732663, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
     bufferTimeMultiplier: 2
@@ -3365,7 +3366,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 754561112090085147, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -5
+      value: 39.16
       objectReference: {fileID: 0}
     - target: {fileID: 754561112090085147, guid: 2e09cc525366803498fa3853c0551de5, type: 3}
       propertyPath: m_LocalRotation.w
