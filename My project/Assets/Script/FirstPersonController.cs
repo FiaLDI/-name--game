@@ -2,6 +2,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 public class FirstPersonController : NetworkBehaviour
@@ -47,7 +48,7 @@ public class FirstPersonController : NetworkBehaviour
     [SyncVar] private Quaternion syncRotation;
     [SyncVar] private float syncPitch;
 
-
+    
     public void EnableInput()
     {
         inputActions.Enable();
@@ -89,18 +90,10 @@ public class FirstPersonController : NetworkBehaviour
             Debug.LogWarning("cameraTransform is null!");
         }
 
-        // Временно закомментируй
+        InitializeObjectives();
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        var objectives = UnityEngine.Object.FindObjectsByType<ObjectiveRuntime>(FindObjectsSortMode.None);
-        Debug.Log($"Found {objectives.Length} ObjectiveRuntime instances.");
-        foreach (var obj in objectives)
-        {
-            obj.Initialize(transform, inputActions);
-            Debug.Log($"Initialized ObjectiveRuntime on {obj.gameObject.name}");
-        }
-
 
         OnLocalPlayerReady?.Invoke(transform, this);
     }
@@ -139,8 +132,11 @@ public class FirstPersonController : NetworkBehaviour
         // Если это НЕ локальный игрок, применяем синхронизированную позицию
         if (!isLocalPlayer)
         {
-            transform.position = Vector3.Lerp(transform.position, syncPosition, Time.deltaTime * 10f);
-            transform.rotation = Quaternion.Lerp(transform.rotation, syncRotation, Time.deltaTime * 10f);
+            if (syncRotation != Quaternion.identity && syncRotation.w != 0)
+            {
+                transform.position = Vector3.Lerp(transform.position, syncPosition, Time.deltaTime * 10f);
+                transform.rotation = Quaternion.Lerp(transform.rotation, syncRotation, Time.deltaTime * 10f);
+            }
             return;
         }
 
@@ -175,6 +171,28 @@ public class FirstPersonController : NetworkBehaviour
             
     }
 
+    private void OnDestroy()
+    {
+        if (inputActions != null)
+        {
+            inputActions.Disable();
+        }
+    }
+
+    private void InitializeObjectives()
+    {
+        var objectives = FindObjectsByType<ObjectiveRuntime>(FindObjectsSortMode.None);
+
+        foreach (var objective in objectives)
+        {
+            objective.Initialize(transform, inputActions);
+
+            if (GlobalObjectiveListUIController.Instance != null)
+            {
+                GlobalObjectiveListUIController.Instance.RegisterObjective(objective);
+            }
+        }
+    }
 
     void HandleLook()
     {

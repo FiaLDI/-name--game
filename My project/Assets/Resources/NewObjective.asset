@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: NewObjective
   m_EditorClassIdentifier: 
   objectiveID: 0
-  objectiveName: "\u0421\u0431\u043E\u0440"
+  objectiveName: "\u0421\u0431\u043E\u0440 \u0440\u0430\u0441\u0442\u0435\u043D\u0438\u0439"
   objectiveType: 0
-  holdTime: 0
+  holdTime: 2
   key: 101
   targetPrefab: {fileID: 4896380954260472341, guid: 8be1f9a792ba92c4aa8766875ae17d64, type: 3}
   resultSprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}

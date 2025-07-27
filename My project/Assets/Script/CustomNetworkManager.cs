@@ -1,4 +1,4 @@
-using Mirror;
+п»їusing Mirror;
 using UnityEngine;
 
 public class CustomNetworkManager : NetworkManager
@@ -23,25 +23,38 @@ public class CustomNetworkManager : NetworkManager
     {
         base.OnClientConnect();
         Debug.Log("Client connected to server");
-        // Клиент переключится автоматически при смене сцены сервером
-        NetworkClient.AddPlayer();
+        // РљР»РёРµРЅС‚ РїРµСЂРµРєР»СЋС‡РёС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРё СЃРјРµРЅРµ СЃС†РµРЅС‹ СЃРµСЂРІРµСЂРѕРј
+        if (!NetworkClient.ready)
+            NetworkClient.Ready();
     }
 
     public override void OnServerSceneChanged(string sceneName)
     {
-        base.OnServerSceneChanged(sceneName);
-        Debug.Log($"Server scene changed to {sceneName}");
+        Debug.Log($"рџЊЂ Server scene changed to: {sceneName}");
 
         foreach (var conn in NetworkServer.connections.Values)
         {
-            if (conn.identity == null)
+            if (conn.identity == null) // Р•СЃР»Рё РёРіСЂРѕРє РµС‰Рµ РЅРµ СЃРѕР·РґР°РЅ
             {
-                Transform startPos = SpawnManager.Instance.GetSpawnPoint();
-                GameObject player = Instantiate(playerPrefab, startPos.position, startPos.rotation);
+                Transform spawn = SpawnManager.Instance?.GetSpawnPoint();
+                if (spawn == null)
+                {
+                    Debug.LogError("вќЊ Spawn point is NULL!");
+                    continue;
+                }
+
+                GameObject player = Instantiate(playerPrefab, spawn.position, spawn.rotation);
                 NetworkServer.AddPlayerForConnection(conn, player);
+
+                Debug.Log($"вњ… РРіСЂРѕРє Р·Р°СЃРїР°РІРЅРµРЅ РЅР° {spawn.position} РІ СЃС†РµРЅРµ {sceneName} РґР»СЏ conn {conn.connectionId}");
+            }
+            else
+            {
+                Debug.Log($"в„№пёЏ РРіСЂРѕРє СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ РґР»СЏ conn {conn.connectionId}");
             }
         }
     }
+
 
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
@@ -51,7 +64,7 @@ public class CustomNetworkManager : NetworkManager
             return;
         }
 
-        // Доп. проверка: есть ли точки спавна
+        // Р”РѕРї. РїСЂРѕРІРµСЂРєР°: РµСЃС‚СЊ Р»Рё С‚РѕС‡РєРё СЃРїР°РІРЅР°
         if (SpawnManager.Instance == null)
         {
             Debug.LogError("SpawnManager not found in scene!");
@@ -67,7 +80,7 @@ public class CustomNetworkManager : NetworkManager
 
         GameObject player = Instantiate(playerPrefab, startPos.position, startPos.rotation);
 
-        // Только здесь вызываем
+        // РўРѕР»СЊРєРѕ Р·РґРµСЃСЊ РІС‹Р·С‹РІР°РµРј
         NetworkServer.AddPlayerForConnection(conn, player);
     }
 

@@ -1,74 +1,57 @@
 using Mirror;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class ObjectiveManager : NetworkBehaviour
 {
-    [SyncVar]
-    private string objectiveID;
-
-    public ObjectiveData currentObjective;
+    [SerializeField] private GameObject[] objectivePrefabs;
 
     public override void OnStartLocalPlayer()
     {
-        tag = "Player";
-        CmdRequestObjective();
+        if (GlobalObjectiveListUIController.Instance == null)
+        {
+            Debug.LogError("GlobalObjectiveListUIController not found!");
+            return;
+        }
+
+        if (isServer)
+        {
+            CmdSpawnObjectives();
+        }
     }
 
     [Command]
-    void CmdRequestObjective()
+    private void CmdSpawnObjectives()
     {
-        string sceneName = SceneManager.GetActiveScene().name;
-        string chosenObjective = GetObjectiveIDByScene(sceneName);
-
-        RpcSetObjective(chosenObjective);
-    }
-
-    string GetObjectiveIDByScene(string sceneName)
-    {
-        switch (sceneName)
+        if (objectivePrefabs == null || objectivePrefabs.Length == 0)
         {
-            case "Level_1":
-                return "Objective_Level1"; // файл должен быть: Resources/Objective_Level1.asset
-            case "Level_2":
-                return "Objective_Level2";
-            default:
-                return "NewObjective";
-        }
-    }
-
-
-    [ClientRpc]
-    void RpcSetObjective(string id)
-    {
-        objectiveID = id;
-        currentObjective = Resources.Load<ObjectiveData>(id);
-
-        if (currentObjective == null)
-        {
-            Debug.LogError("Objective not found: " + id);
+            //Debug.LogError("Objective prefabs not assigned!");
             return;
         }
 
-        SpawnObjective();
+        foreach (var prefab in objectivePrefabs)
+        {
+            GameObject instance = Instantiate(prefab);
+            NetworkServer.Spawn(instance);
+
+            // Регистрируем цель на сервере
+            var objective = instance.GetComponent<ObjectiveRuntime>();
+            if (objective != null)
+            {
+                TargetRegisterObjective(connectionToClient, objective.netId);
+            }
+        }
     }
 
-    void SpawnObjective()
+    [TargetRpc]
+    private void TargetRegisterObjective(NetworkConnection target, uint netId)
     {
-        GameObject prefab = Resources.Load<GameObject>("ObjectiveRuntimePrefab");
-
-        if (prefab == null)
+        if (NetworkClient.spawned.TryGetValue(netId, out var obj))
         {
-            Debug.LogError("Prefab not found in Resources");
-            return;
+            var objective = obj.GetComponent<ObjectiveRuntime>();
+            if (objective != null && GlobalObjectiveListUIController.Instance != null)
+            {
+                GlobalObjectiveListUIController.Instance.RegisterObjective(objective);
+            }
         }
-
-        GameObject instance = Instantiate(prefab, transform.position + Vector3.forward * 2, Quaternion.identity);
-        var runtime = instance.GetComponent<ObjectiveRuntime>();
-        runtime.data = currentObjective;
-        runtime.player = this.transform;
-        runtime.isGlobal = true;
-
-        NetworkServer.Spawn(instance);
     }
 }

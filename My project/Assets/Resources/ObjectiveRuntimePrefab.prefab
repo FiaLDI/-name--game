@@ -68,8 +68,17 @@ MonoBehaviour:
   syncInterval: 0
   data: {fileID: 11400000, guid: 554bbb5a31749f64e92622d1a7d8affa, type: 2}
   isCompleted: 0
-  isGlobal: 0
+  isGlobal: 1
   player: {fileID: 0}
+  interactAction:
+    m_Name: Interact
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 138059f1-99c5-4928-b853-c2f596e93c7a
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
 --- !u!212 &7716703383534275354
 SpriteRenderer:
   m_ObjectHideFlags: 0
