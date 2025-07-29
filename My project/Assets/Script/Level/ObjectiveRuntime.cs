@@ -20,6 +20,14 @@ public class ObjectiveRuntime : NetworkBehaviour
     private IObjectiveMechanic mechanic;
 
     public event System.Action OnObjectiveCompleted;
+
+    [Header("Visuals (Optional)")]
+    public Renderer targetRenderer; // Например, MeshRenderer или SkinnedMeshRenderer
+    public Color completedColor = Color.green;
+    public Material completedMaterial;
+    public bool changeColorOnComplete = false;
+    public bool changeMaterialOnComplete = false;
+
     private void Start()
     {
         if (data == null)
@@ -83,6 +91,20 @@ public class ObjectiveRuntime : NetworkBehaviour
             if (isLocalPlayer)
             {
                 GlobalObjectiveListUIController.Instance?.RpcUpdateAllObjectives();
+            }
+
+            if (changeColorOnComplete  && targetRenderer != null)
+            {
+                // Создаем копию материала, чтобы не менять sharedMaterial
+                var newMaterial = new Material(targetRenderer.material);
+                newMaterial.color = completedColor;
+                targetRenderer.material = newMaterial;
+            }
+
+
+            if (changeMaterialOnComplete && completedMaterial != null)
+            {
+                targetRenderer.material = completedMaterial;
             }
         }
     }

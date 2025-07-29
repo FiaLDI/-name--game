@@ -26,6 +26,12 @@ public class CustomNetworkManager : NetworkManager
         // Клиент переключится автоматически при смене сцены сервером
         if (!NetworkClient.ready)
             NetworkClient.Ready();
+
+        if (!NetworkClient.localPlayer)
+        {
+            Debug.Log("👤 Requesting AddPlayer from client...");
+            NetworkClient.AddPlayer();
+        }
     }
 
     public override void OnServerSceneChanged(string sceneName)

@@ -10,14 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 22b506fe23f73b347bd7eaab4df9401e, type: 3}
-  m_Name: NewObjective
+  m_Name: "\u041F\u043E\u0434\u043E\u0439\u0442\u0438"
   m_EditorClassIdentifier: 
-  objectiveID: 0
-  objectiveName: "\u0421\u0431\u043E\u0440 \u0440\u0430\u0441\u0442\u0435\u043D\u0438\u0439"
-  objectiveType: 0
-  holdTime: 2
+  objectiveID: 
+  objectiveName: "\u041E\u0431\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C"
+  objectiveType: 1
+  holdTime: 0
   key: 101
-  targetPrefab: {fileID: 4896380954260472341, guid: 8be1f9a792ba92c4aa8766875ae17d64, type: 3}
-  resultSprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  targetPrefab: {fileID: 0}
   targetPosition: {x: 0, y: 0, z: 0}
-  activationRange: 5
+  activationRange: 3
