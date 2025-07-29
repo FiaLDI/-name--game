@@ -333,6 +333,28 @@ MonoBehaviour:
   isCompleted: 0
   isGlobal: 1
   player: {fileID: 0}
+  interactAction:
+    m_Name: Interact
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 46e458eb-1893-4506-bfd4-b03dee2df2d6
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: 3381d0ba-13db-4244-818b-09a26af46299
+      m_Path: 
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Interact
+      m_Flags: 0
+    m_Flags: 0
+  targetRenderer: {fileID: 8972991640220583813}
+  completedColor: {r: 0, g: 1, b: 0, a: 1}
+  completedMaterial: {fileID: 681188275798323225, guid: 73e159eb4fc7c744da1f44f1a19f2348, type: 3}
+  changeColorOnComplete: 0
+  changeMaterialOnComplete: 1
 --- !u!1 &5944701347664597381
 GameObject:
   m_ObjectHideFlags: 0

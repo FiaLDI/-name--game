@@ -18,7 +18,6 @@ public class ObjectiveData : ScriptableObject
     public KeyCode key = KeyCode.E;
 
     public GameObject targetPrefab; // объект для взаимодействия
-    public Sprite resultSprite; // если нужно изменить визуал
     public Vector3 targetPosition; // для ReachLocation
 
     public float activationRange = 3f;

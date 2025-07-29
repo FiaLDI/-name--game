@@ -1,107 +1,155 @@
-﻿using UnityEngine;
-using Mirror;
+﻿using Mirror;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class ObjectiveRuntime : NetworkBehaviour
 {
     public ObjectiveData data;
-    [SyncVar] public bool isCompleted = false;
+    [SyncVar(hook = nameof(OnIsCompletedChanged))]
+    public bool isCompleted = false;
     public bool isGlobal = false;
 
+    [Header("Player References")]
     public Transform player;
+    public PlayerInputActions inputActions;
+    public InputAction interactAction;
 
-    private float timer = 0f;
+    public System.Action OnCompleted;
 
-    private PlayerInputActions inputActions;
-    private InputAction interactAction;
+    [Header("Mechanics")]
+    private IObjectiveMechanic mechanic;
 
-    public void Initialize(Transform playerTransform, PlayerInputActions playerInputActions)
+    public event System.Action OnObjectiveCompleted;
+
+    [Header("Visuals (Optional)")]
+    public Renderer targetRenderer; // Например, MeshRenderer или SkinnedMeshRenderer
+    public Color completedColor = Color.green;
+    public Material completedMaterial;
+    public bool changeColorOnComplete = false;
+    public bool changeMaterialOnComplete = false;
+
+    private void Start()
     {
-        Debug.Log("ObjectiveRuntime Initialize called");
+        if (data == null)
+        {
+            Debug.LogError("ObjectiveData not assigned!", this);
+            return;
+        }
+
+        InitializeMechanic();
+    }
+
+    private void InitializeMechanic()
+    {
+        if (mechanic != null) return;
+        switch (data.objectiveType)
+        {
+            case ObjectiveType.HoldKeyNearObject:
+                mechanic = new HoldKeyObjective();
+                break;
+            case ObjectiveType.ReachLocation:
+                mechanic = new ReachLocationObjective();
+                break;
+        }
+
+        if (mechanic != null)
+        {
+            mechanic.Initialize(this);
+        }
+    }
+
+    public void Initialize(Transform playerTransform, PlayerInputActions inputs)
+    {
         player = playerTransform;
-        inputActions = playerInputActions;
+        inputActions = inputs;
         interactAction = inputActions.Player.Interact;
-        Debug.Log($"Interact action assigned: {interactAction != null}");
         interactAction.Enable();
     }
 
-
-    void Start()
+    public override void OnStartServer()
     {
-
-        Debug.Log($"ObjectiveRuntime Start. player = {player}, interactAction = {interactAction}");
-    }
-
-
-
-    private void OnEnable()
-    {
-        if (interactAction != null)
-            interactAction.Enable();
-    }
-
-    private void OnDisable()
-    {
-        if (interactAction != null)
-            interactAction.Disable();
-    }
-
-    void Update()
-    {
-        if (player == null)
-            return;
-
-        if (interactAction == null)
+        base.OnStartServer();
+        if (GlobalObjectiveListUIController.Instance != null)
         {
-            Debug.LogWarning("Interact action is null, waiting for Initialize");
-            return;
+            GlobalObjectiveListUIController.Instance.RegisterObjective(this);
         }
+    }
 
-        float distance = Vector3.Distance(player.position, transform.position);
+    private void Update()
+    {
+        if (isCompleted || mechanic == null || player == null)
+            return;
 
-        if (distance <= data.activationRange)
+        mechanic.Update();
+    }
+
+    private void OnIsCompletedChanged(bool oldValue, bool newValue)
+    {
+        if (newValue)
         {
-            if (interactAction.WasPressedThisFrame() || interactAction.ReadValue<float>() > 0)
+            OnCompleted?.Invoke();
+            if (isLocalPlayer)
             {
-                timer += Time.deltaTime;
-                if (timer >= data.holdTime)
-                {
-                    if (isGlobal)
-                        CmdCompleteGlobalObjective();
-                    else
-                        CmdComplete();
-                    isCompleted = true;
-                }
+                GlobalObjectiveListUIController.Instance?.RpcUpdateAllObjectives();
             }
-            else
+
+            if (changeColorOnComplete  && targetRenderer != null)
             {
-                timer = 0f;
+                // Создаем копию материала, чтобы не менять sharedMaterial
+                var newMaterial = new Material(targetRenderer.material);
+                newMaterial.color = completedColor;
+                targetRenderer.material = newMaterial;
             }
+
+
+            if (changeMaterialOnComplete && completedMaterial != null)
+            {
+                targetRenderer.material = completedMaterial;
+            }
+        }
+    }
+
+    [Command(requiresAuthority = false)]
+    public void CompleteObjective()
+    {
+        if (isCompleted) return;
+
+        if (isGlobal)
+        {
+            CmdCompleteGlobalObjective();
         }
         else
         {
-            timer = 0f;
+            CmdComplete();
         }
     }
 
     [Command(requiresAuthority = false)]
-    void CmdComplete()
+    private void CmdComplete()
     {
         isCompleted = true;
-        RpcOnCompleted();
     }
 
     [Command(requiresAuthority = false)]
-    void CmdCompleteGlobalObjective()
+    private void CmdCompleteGlobalObjective()
     {
         isCompleted = true;
-        GlobalObjectiveManager.Instance.MarkGlobalObjectiveComplete();
+        GlobalObjectiveManager.Instance?.MarkGlobalObjectiveComplete(data.objectiveID);
     }
 
-    [ClientRpc]
-    public void RpcOnCompleted()
+    private void OnDestroy()
     {
-        GetComponent<SpriteRenderer>().color = Color.green;
-        Debug.Log($"Objective completed: {data.objectiveName}");
+        if (interactAction != null)
+        {
+            interactAction.Disable();
+        }
     }
+
+    [ServerCallback]
+    public void Complete()
+    {
+        isCompleted = true;
+    }
+
+    public InputAction GetInteractAction() => interactAction;
 }

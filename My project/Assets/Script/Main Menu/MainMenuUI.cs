@@ -34,6 +34,8 @@ public class MainMenuUI : MonoBehaviour
 
     public void OnClickHost()
     {
+        Debug.Log($"NetworkManager.singleton: {NetworkManager.singleton}");
+
         if (customNetworkManager != null)
         {
             if (customNetworkManager.isNetworkActive)
